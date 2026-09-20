@@ -1,207 +1,333 @@
+# UPI MDR 2026 Payment Analytics: Identifying How ~4% of P2M Transactions Drive ~57% of Transaction Value
 
-# UPI MDR 2026 — Payment Economics, Data Risk & Card Network Impact Analytics
+## 1. Business Problem
 
-## Why I built this
+India's announced 2026 UPI MDR framework introduces differentiated merchant charges based on transaction value, merchant eligibility, and transaction category.
 
-India's UPI ecosystem is enormous, but a relatively small change in merchant payment economics can create very different effects depending on transaction size, merchant type and payment behavior.
+The objective of this project was to build a transaction-level analytics framework that helps a **payments / data analytics team** understand:
 
-I wanted to explore a simple question:
+- Which UPI transactions become MDR-bearing under the modeled rules?
+- How much MDR could be generated across different transaction categories?
+- Which merchant segments contribute most to the modeled MDR?
+- What data-quality and governance controls are required to calculate MDR reliably?
+- How could changing UPI merchant economics become relevant when analyzing payment-method mix and card networks?
 
-> **What happens when MDR rules change — and can we build a data framework that is reliable enough to monitor the impact?**
-> This project analyzes the announced **2026 UPI Merchant Discount Rate (MDR) framework** and models its potential impact on:
-
-- Merchant payment economics
-- Transaction-level MDR exposure
-- Payment transaction mix
-- Merchant/category-level impact
-- Data quality and governance requirements
-- Potential payment-method substitution relevant to card networks
-
-This project combines **Python, SQL, Excel and data governance** to model the 2026 UPI MDR framework and explore its potential implications for merchants, payment participants and card-network payment mix.
+The project models the announced MDR framework using **100,000 synthetic UPI transactions** and builds an end-to-end workflow across **SQL, Python, Excel, and Data Governance**.
 
 ---
 
-## What I actually built
+## 2. Dataset
 
-This wasn't just a dashboard project.
+The project uses a **100,000-row synthetic UPI transaction dataset** generated using Python.
 
-I built the workflow from the ground up:
+The dataset was calibrated using publicly available UPI statistics and project assumptions to create a realistic analytical environment without using any real customer or merchant data.
+
+| Dataset | Rows | Key Fields |
+|---|---:|---|
+| UPI Transactions | 100,000 | Transaction ID, Date, Transaction Type, Amount, Merchant ID, Merchant Category, Merchant Size, Monthly Merchant Receipts, Bank, UPI App, Transaction Status, Policy Version |
+
+### Modeled Transaction Mix
+
+- **63.25% P2M transactions**
+- **36.75% P2P transactions**
+- P2M transactions segmented into transaction-value bands
+- Merchant categories include Grocery, Restaurants, Fuel, Telecom, Railways, Capital Markets, Electronics, Department Stores and Other Retail
+- Transaction statuses include Success, Failed and Reversed
+- Policy version tracked as `MDR_2026`
+
+### Analysis Period
+
+The synthetic transaction scenario covers:
+
+**15 October 2026 – 31 October 2026**
+
+This represents a forward-looking analytical scenario based on the announced MDR framework.
+
+### Data Classification
+
+**Synthetic / Calibrated**
+
+No real customer, merchant or payment-network transaction data is used in this project.
+
+---
+
+## 3. Tools Used
+
+**SQL / MySQL Workbench**
+- CASE statements
+- Aggregations
+- Transaction segmentation
+- Business-rule implementation
+- MDR calculations
+- Data-quality checks
 
 **Python**
-→ generated 100,000 synthetic UPI transactions
-
-**MySQL**
-→ created the transaction data layer and MDR rule engine
-
-**SQL**
-→ analyzed transaction mix, MDR exposure, thresholds and merchant categories
-
-**Python**
-→ independently recalculated KPIs, MDR and daily/category trends
-
-**Data Governance**
-→ added completeness, validity, uniqueness, policy-version and lineage controls
+- pandas
+- NumPy
+- Matplotlib
+- Synthetic data generation
+- Data validation
+- KPI analysis
+- Category analysis
+- Daily trend analysis
 
 **Excel**
-→ converted the analysis into a management dashboard
+- KPI dashboard
+- MDR rule analysis
+- Category analysis
+- Daily trend analysis
+- Data-governance controls
+- Source & assumptions register
 
----UPI has historically operated with very limited merchant MDR in many transaction categories.
+**GitHub**
+- Project documentation
+- Source-code management
+- Portfolio publication
 
-The 2026 framework introduces differentiated MDR treatment based on:
+---
+
+## 4. Approach
+
+### 1. Data Generation & Calibration
+
+Python was used to generate **100,000 synthetic UPI transactions**.
+
+The generated dataset includes transaction-level attributes required to evaluate MDR rules, including:
 
 - Transaction type
 - Transaction amount
-- Merchant size / monthly receipts
 - Merchant category
-- Sector
-- Capital-market transaction status
-- MDR caps and fixed charges
+- Merchant size
+- Monthly merchant receipts
+- Transaction status
+- Bank
+- UPI application
 
-That creates a data problem as well as a payment-economics problem.
-
-A payments organization would need to answer:
-
-### Payment Economics
-- Which transactions become MDR-bearing?
-- How much MDR could be generated under the modeled rules?
-- Which merchant categories contribute most?
-- How concentrated is MDR exposure?
-
-### Data & Governance
-- Can every transaction be correctly classified?
-- Are merchant attributes complete?
-- Are MDR rules applied consistently?
-- Can every calculated MDR amount be traced back to a policy rule?
-- Can the analysis be reproduced when the policy changes?
-
-### Card Network Relevance
-If merchant economics change, could payment-method mix also change?
-
-The project therefore connects **payment economics + analytics + data governance + card-network strategy** rather than looking at MDR as only a pricing calculation.
-
-# The interesting part — what did the data show?
-
-### 1. A small share of transactions can represent a huge share of payment value
-
-In the modeled dataset:
-
-- **63.25%** of transactions are P2M
-- Only around **4% of P2M transactions** are above ₹2,000
-- Yet those >₹2,000 transactions represent approximately **57% of P2M transaction value**
-
-That was one of the most interesting patterns in the analysis.
-
-**Transaction volume alone doesn't tell the whole payment-economics story.**
+The dataset was calibrated to create a plausible UPI transaction mix while remaining completely synthetic.
 
 ---
 
-### 2. Modeled MDR is highly concentrated
+### 2. SQL Analysis & MDR Rule Engine
 
-The MDR engine produced approximately **₹41,035 of modeled MDR** across the synthetic dataset.
+The transaction data was loaded into MySQL and a rule-based MDR calculation layer was created.
 
-The distribution was highly concentrated:
+The modeled rule hierarchy includes:
 
-| MDR Rule | Modeled MDR |
+| Transaction Rule | MDR Treatment |
 |---|---:|
-| Standard P2M – 0.4% | ₹39,850 |
-| Essential Sector – Flat ₹5 | ₹1,100 |
-| Capital Market – 0.02% | ₹84 |
-| Other modeled transactions | ₹0 |
+| P2P transactions | ₹0 |
+| P2M ≤ ₹2,000 | ₹0 |
+| Eligible small merchant | ₹0 |
+| Essential-sector qualifying transactions | ₹5 |
+| Capital Markets | 0.02%, capped at ₹300 |
+| Standard eligible P2M | 0.4%, capped at ₹300 |
 
-The **Standard P2M rule accounts for roughly 97% of modeled MDR**.
+SQL was then used to analyze:
 
-This means that monitoring the overall MDR number without understanding **which policy rule generated it** could hide important changes in the underlying payment mix.
-
----
-
-### 3. Merchant category matters
-
-Within the modeled successful P2M population, MDR exposure was not evenly distributed.
-
-The largest modeled contributors included:
-
-- Grocery — **27.04%**
-- Other Retail — **21.50%**
-- Restaurants — **14.90%**
-- Electronics — **13.12%**
-- Department Stores — **10.47%**
-
-Together, **Grocery + Other Retail account for roughly 48.5% of modeled MDR**.
-
-This makes merchant-category classification an important data-governance dependency: if the category or MCC mapping is wrong, the downstream MDR calculation can also be wrong.
+- P2P vs P2M transaction mix
+- Transaction-value distribution
+- MDR-eligible transactions
+- MDR generated by policy rule
+- Merchant-category distribution
+- Transaction-level policy classification
 
 ---
 
-### 4. Data quality is part of the business problem
+### 3. Python Validation & Analysis
 
-The project didn't treat data quality as an afterthought.
+Python was used as a second analytical layer to validate the transaction-level MDR logic and generate analytical outputs.
 
-The transaction dataset was tested for:
+The analysis included:
 
-- Missing P2M merchant IDs
-- Missing P2M MCCs
-- Duplicate transaction IDs
+- MDR recalculation
+- KPI validation
+- Merchant-category analysis
+- Daily MDR analysis
+- Transaction-value analysis
+- Visualization of MDR trends
+
+This created an independent analytical check between the SQL calculations and Python outputs.
+
+---
+
+### 4. Data Governance
+
+The project also evaluates MDR implementation as a **data-governance problem**.
+
+Controls were created for:
+
+**Completeness**
+- Missing Merchant ID
+- Missing merchant category / MCC
+
+**Uniqueness**
+- Duplicate Transaction ID
+
+**Validity**
 - Invalid transaction amounts
-- Policy-version traceability
-- Synthetic-source classification
 
-The current modeled dataset passed these basic controls.
+**Lineage**
+- MDR policy version tracking
 
-The bigger takeaway is that **a correct MDR formula is only useful when the data feeding that formula is trustworthy.**
+**Source Classification**
+- Identification of transaction data as `Synthetic_Calibrated`
 
----
-
-# Why this matters for payment networks
-
-The project does **not** attempt to predict American Express or Mastercard revenue.
-
-Instead, it creates a framework for thinking about a potential second-order effect:
-
-**Merchant economics**
-→ payment-method economics  
-→ merchant/consumer payment preferences  
-→ transaction mix  
-→ potential card-network activity
-
-The interesting analytical question is therefore not simply:
-
-> "Will UPI hurt cards?"
-
-Instead:
-
-> **"Under what merchant, transaction-value and payment-behavior scenarios could changes in UPI economics influence payment-method mix?"**
-
-That is the scenario-analysis layer I would build next using actual payment-method data.
+These controls help ensure that MDR calculations can be traced back to reliable transaction attributes and a defined policy version.
 
 ---
 
-# Data & assumptions
+### 5. Visualisation
 
-The transaction-level dataset is **synthetic**, generated using Python.
+An Excel management dashboard was developed to present the results.
 
-It was calibrated using documented UPI ecosystem and policy assumptions.
+The dashboard includes:
 
-It is **not actual NPCI, bank, American Express or Mastercard transaction data**.
-
-The purpose of the synthetic dataset is to demonstrate the analytical and governance framework without representing private transaction information as real market data.
+- KPI summary cards
+- P2M vs P2P transaction-volume analysis
+- Estimated MDR by policy rule
+- Daily estimated MDR trend
+- Supporting category analysis
+- Data-governance controls
+- Source and assumptions register
 
 ---
 
-# Project architecture
+## 5. Key Insights
 
-```text
-Python Data Generation
-        ↓
-Synthetic Transaction Dataset
-        ↓
-MySQL Raw Data Layer
-        ↓
-SQL MDR Rule Engine
-        ↓
-Data Quality & Governance Controls
-        ↓
-Python Independent Analysis
-        ↓
-Excel Management Dashboard
-        ↓
-Payment Economics & Scenario Analysis
+### 1. A small proportion of P2M transactions represents a large proportion of transaction value
+
+The dataset contains:
+
+- **100,000 total transactions**
+- **63,252 P2M transactions**
+- **36,748 P2P transactions**
+
+Approximately **4% of P2M transactions were above ₹2,000**.
+
+However, these transactions represented approximately **57% of modeled P2M transaction value**.
+
+This highlights an important payments insight:
+
+**Transaction volume and transaction value can have very different distributions.**
+
+---
+
+### 2. Modeled MDR is highly concentrated in the standard P2M rule
+
+Total modeled MDR across the synthetic transaction population was approximately:
+
+## **₹41,035**
+
+MDR contribution by rule:
+
+| MDR Rule | Estimated MDR |
+|---|---:|
+| Standard P2M — 0.4% | ~₹39,850 |
+| Essential Sector — ₹5 | ~₹1,100 |
+| Capital Markets — 0.02% | ~₹84 |
+| Non-MDR rules | ₹0 |
+
+The **standard P2M rule contributed approximately 97% of total modeled MDR**.
+
+This means correct transaction classification into the standard MDR population has a significant impact on the final MDR estimate.
+
+---
+
+### 3. Merchant activity is concentrated across several major categories
+
+Within successful P2M activity, key merchant-category shares included:
+
+- **Grocery — 27.04%**
+- **Other Retail — 21.50%**
+- **Restaurants — 14.90%**
+- **Electronics — 13.12%**
+- **Department Stores — 10.47%**
+
+Grocery and Other Retail together represented approximately **48.5% of successful P2M transaction activity** in the modeled dataset.
+
+This demonstrates why merchant-level and category-level segmentation is important when evaluating changes in payment economics.
+
+---
+
+### 4. MDR implementation is also a data-quality problem
+
+Accurate MDR calculations depend on fields such as:
+
+- Transaction amount
+- Transaction type
+- Merchant category
+- Merchant size
+- Monthly merchant receipts
+- Policy version
+
+Missing or incorrectly classified data in these fields could cause a transaction to be assigned to the wrong MDR rule.
+
+The project therefore combines **payment analytics with data-quality and governance controls** rather than treating MDR as only a financial calculation.
+
+---
+
+### 5. Potential relevance to card networks
+
+The analysis does **not** attempt to forecast American Express, Mastercard, or other card-network revenue.
+
+Instead, it highlights a strategic payments question:
+
+**If UPI merchant economics change, could payment-method economics and transaction mix also change?**
+
+Merchant payment decisions can depend on factors such as transaction value, payment cost, merchant category, settlement economics and customer preferences.
+
+The framework therefore provides a way to analyze potential payment-method substitution scenarios without making unsupported revenue predictions.
+
+---
+
+## 6. Recommendations
+
+Based on the modeled analysis:
+
+1. **Monitor high-value P2M transactions separately** because a relatively small transaction population represents a disproportionately large share of payment value.
+
+2. **Track MDR exposure by merchant category** rather than relying only on total transaction-level MDR.
+
+3. **Prioritize validation of merchant classification and transaction amount fields**, as these directly affect MDR-rule assignment.
+
+4. **Maintain policy-version lineage** so MDR calculations can be traced to the specific business rules used at the time of calculation.
+
+5. **Monitor transaction mix over time** to identify whether changes in merchant payment economics coincide with changes in payment-method behavior.
+
+6. For card-network analysis, evaluate UPI MDR alongside other factors such as **merchant economics, transaction value, category, customer preference and payment acceptance** rather than treating MDR as a direct predictor of card-network revenue.
+
+---
+
+## 7. Dashboard / Screenshots
+
+The Excel management dashboard is available in:
+
+`07_Dashboard/UPI_MDR_2026_Analysis.xlsx`
+
+### Dashboard KPIs
+
+- **Total Transactions:** 100,000
+- **P2M Volume Share:** 63.25%
+- **P2M Transaction Value:** ₹534.11M
+- **Estimated MDR:** ₹41,034.87
+
+### Dashboard Visuals
+
+The dashboard includes:
+
+- P2M vs P2P Transaction Volume
+- Estimated MDR by Policy Rule
+- Daily Estimated MDR — October 2026
+- KPI Summary
+- Data Governance controls
+- Source & Assumptions register
+
+---
+
+Disclaimer
+This is a portfolio analytics project.
+Transaction-level data used in this project is synthetic and calibrated for analytical purposes. It does not contain real customer, merchant, American Express, Mastercard, NPCI, bank or payment-network transaction data.
+The calculated MDR values are modeled estimates based on the project's stated rules and assumptions and should not be interpreted as actual industry MDR collections, company revenue, or a forecast of card-network performance.
+
+Name: Gunjan Aggarwal
+Email: gunjan250103@gmail.com
